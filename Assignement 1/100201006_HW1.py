@@ -27,12 +27,17 @@ testloader = torch.tensor(data[1])
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(100, 64)
-        self.fc2 = nn.Linear(64, 10)
+        self.fc1 = nn.Linear(13, 6).to(torch.float64)
+        self.fc2 = nn.Linear(6, 1).to(torch.float64)
+    
+    def forward(self, inp):
+        out = self.fc1(inp)
+        out = self.fc2(out)
+        return out
 
 model = Net()
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=0.01)
+criterion = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr=0.01)
 
 for epoch in range(5):  # loop over the dataset multiple times
     for data in trainloader:
@@ -49,8 +54,7 @@ correct = 0
 total = 0
 with torch.no_grad():
     for data in testloader:
-        images, labels = data
-        outputs = net(images)
-        _, predicted = torch.max(outputs.data, 1)
-        total += labels.size(0)
-        correct += (predicted == labels).sum().item()
+        inputs = data[:-1]
+        labels = data[-1]
+        outputs = model(inputs)
+        print(f"output = {outputs.item()}, real value = {labels}, diff = {labels-outputs.item()}")
