@@ -15,18 +15,18 @@ import pandas as pd
 # --------------------------------- CONSTANT --------------------------------- #
 PATH = "./introduction_deep/Assignement 1/"
 
-# ------------------------------ DATASET LOADING ----------------------------- #
-   
+# ------------------------------ DATASET LOADING ----------------------------- #  
 data = pd.read_csv(PATH+"TheBostonHousingDataset.csv").values
 data = train_test_split(data)
-train = data[0]
-test = data[1]
+# train = data[0]
+# test = data[1]
 trainloader = torch.tensor(data[0])
 testloader = torch.tensor(data[1])
 
-class Net(nn.Module):
+# -------------------------- NEURAL NETWORK CREATION ------------------------- #
+class BostonFFN(nn.Module):
     def __init__(self):
-        super(Net, self).__init__()
+        super(BostonFFN, self).__init__()
         self.fc1 = nn.Linear(13, 6).to(torch.float64)
         self.fc2 = nn.Linear(6, 1).to(torch.float64)
     
@@ -35,26 +35,36 @@ class Net(nn.Module):
         out = self.fc2(out)
         return out
 
-model = Net()
+boston_model = BostonFFN()
 criterion = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.01)
+optimizer = optim.Adam(boston_model.parameters(), lr=0.01)
 
-for epoch in range(5):  # loop over the dataset multiple times
+# --------------------------------- TRAINING --------------------------------- #
+for epoch in range(20):  # loop over the dataset multiple times
     for data in trainloader:
         # get the inputs; data is a list of [inputs, labels]
         inputs = data[:-1]
         labels = data[-1]
         optimizer.zero_grad()
-        outputs = model(inputs)
+        outputs = boston_model(inputs)
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
 
+# -------------------------------- EVALUATION -------------------------------- #
 correct = 0
 total = 0
 with torch.no_grad():
     for data in testloader:
         inputs = data[:-1]
         labels = data[-1]
-        outputs = model(inputs)
+        outputs = boston_model(inputs)
         print(f"output = {outputs.item()}, real value = {labels}, diff = {labels-outputs.item()}")
+
+
+
+
+# ---------------------------------------------------------------------------- #
+#                                 BREAST CANCER                                #
+# ---------------------------------------------------------------------------- #
+
