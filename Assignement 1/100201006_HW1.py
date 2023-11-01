@@ -136,6 +136,8 @@ for epoch in range(0):
 # ---------------------------- DATA PREPROCESSING ---------------------------- #
 (train_images,train_labels),(test_images, test_labels) = fashion_mnist.load_data()
 
+x_train, x_test = x_train/255,x_test/255
+
 mnist_x_train = torch.tensor(train_images)
 mnist_y_train = torch.tensor(train_labels)
 mnist_x_test = torch.tensor(test_images)
@@ -143,4 +145,20 @@ mnist_y_test = torch.tensor(test_labels)
 
 
 # ----------------------- NEURAL NETWORK INITIALIZATION ---------------------- #
-
+class MnistClassifier(nn.Module):
+    def __init__(self):
+        super(MnistClassifier, self).__init__()
+        self.relu = nn.ReLU()
+        self.conv = nn.Conv2d()
+        self.maxp = nn.MaxPool2d()
+        self.smax = nn.Softmax()
+    
+    def forward(self, inp):
+        out = self.conv(inp)
+        out = self.maxp(out)
+        out = self.conv(inp)
+        out = self.maxp(out)
+        out = out.view()
+        out = self.relu()
+        out = self.smax()
+        return out
