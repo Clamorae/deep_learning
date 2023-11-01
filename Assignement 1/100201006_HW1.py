@@ -111,7 +111,7 @@ class BinaryCancer(nn.Module):
         return out
     
 cancer_model = BinaryCancer()
-criterion = nn.BCELoss()
+criterion_cancer = nn.BCELoss()
 optimizer = optim.Adam(cancer_model.parameters(), lr=0.01)
 
 # --------------------------------- TRAINING --------------------------------- #
@@ -120,7 +120,7 @@ for epoch in range(0):
     for input,label in zip(x_train,y_train):
         optimizer.zero_grad()
         outputs = cancer_model(input)
-        loss = criterion(outputs, label)
+        loss = criterion_cancer(outputs, label)
         loss.backward()
         sum_loss+= loss.item()
         optimizer.step()
@@ -136,12 +136,12 @@ for epoch in range(0):
 # ---------------------------- DATA PREPROCESSING ---------------------------- #
 (train_images,train_labels),(test_images, test_labels) = fashion_mnist.load_data()
 
-x_train, x_test = x_train/255,x_test/255
+train_images, test_images = train_images/255,test_images/255
 
-mnist_x_train = torch.tensor(train_images)
-mnist_y_train = torch.tensor(train_labels)
-mnist_x_test = torch.tensor(test_images)
-mnist_y_test = torch.tensor(test_labels)
+mnist_x_train = torch.tensor(train_images).to(torch.float32)
+mnist_y_train = torch.tensor(train_labels).to(torch.float32)
+mnist_x_test = torch.tensor(test_images).to(torch.float32)
+mnist_y_test = torch.tensor(test_labels).to(torch.float32)
 
 
 # ----------------------- NEURAL NETWORK INITIALIZATION ---------------------- #
@@ -149,16 +149,32 @@ class MnistClassifier(nn.Module):
     def __init__(self):
         super(MnistClassifier, self).__init__()
         self.relu = nn.ReLU()
-        self.conv = nn.Conv2d()
-        self.maxp = nn.MaxPool2d()
+        self.conv1 = nn.Conv2d(1, 6, kernel_size=5)
+        self.conv2 = nn.Conv2d(6, 16, kernel_size=5)
+        self.maxp = nn.MaxPool2d(2)
         self.smax = nn.Softmax()
     
     def forward(self, inp):
-        out = self.conv(inp)
+        out = self.conv1(inp)
         out = self.maxp(out)
-        out = self.conv(inp)
+        out = self.conv2(out)
         out = self.maxp(out)
-        out = out.view()
-        out = self.relu()
-        out = self.smax()
+        out = self.relu(out)
+        out = self.smax(out)
         return out
+
+mnist_model = MnistClassifier()
+criterion_mnist = nn.CrossEntropyLoss()
+optimizer = optim.Adam(cancer_model.parameters(), lr=0.01)
+
+for epoch in range(EPOCHS):
+    sum_loss = 0
+    for items, labels in zip(mnist_x_train, mnist_y_train):
+        items = items[None,:,:]
+        optimizer.zero_grad()
+        outputs = mnist_model(items)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        sum_loss+= loss.item()
+        optimizer.step()
+    print(f"[EPOCH {epoch}/{EPOCHS}] Average loss: {sum_loss/len(mnist_x_train)}")
