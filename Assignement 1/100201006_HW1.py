@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 from keras.datasets import fashion_mnist
+from torch.utils.data import DataLoader,TensorDataset
 
 # ---------------------------------------------------------------------------- #
 #                                BOSTON HOUSING                                #
@@ -18,6 +19,7 @@ from keras.datasets import fashion_mnist
 # --------------------------------- CONSTANT --------------------------------- #
 PATH = "./introduction_deep/Assignement 1/"
 EPOCHS = 20
+BATCH_SIZE = 64
 x = np.linspace(0,EPOCHS-1,EPOCHS)
 
 # ------------------------------ DATASET LOADING ----------------------------- #  
@@ -93,7 +95,10 @@ x_train,x_test,y_train,y_test=train_test_split(data_task2.data,data_task2.target
 x_train = torch.tensor(x_train)
 y_train = torch.tensor(y_train).unsqueeze(1).to(torch.float64)
 x_test = torch.tensor(x_test)
-y_test = torch.tensor(y_test)
+y_test = torch.tensor(y_test).unsqueeze(1).to(torch.float64)
+
+cancer_train_dataset = TensorDataset(x_train,y_train)
+cancer_train_loader = DataLoader(cancer_train_dataset,batch_size=BATCH_SIZE,shuffle=True)
 
 class BinaryCancer(nn.Module):
     def __init__(self):
@@ -115,21 +120,20 @@ criterion_cancer = nn.BCELoss()
 optimizer = optim.Adam(cancer_model.parameters(), lr=0.01)
 
 # --------------------------------- TRAINING --------------------------------- #
-for epoch in range(0): 
+for epoch in range(EPOCHS): 
     sum_loss = 0
-    for input,label in zip(x_train,y_train):
+    for input,label in cancer_train_loader:
         optimizer.zero_grad()
         outputs = cancer_model(input)
         loss = criterion_cancer(outputs, label)
         loss.backward()
         sum_loss+= loss.item()
         optimizer.step()
-        print(f"Out:{outputs.item()}, Tar: {label.item()}")
     print(f"[EPOCH {epoch}/{EPOCHS}] Average loss: {sum_loss/len(x_train)}")
 
 
 # ---------------------------------------------------------------------------- #
-#                                     MNSIT                                    #
+#                                     MNIST                                    #
 # ---------------------------------------------------------------------------- #
 
 
@@ -143,6 +147,8 @@ mnist_y_train = torch.tensor(train_labels).to(torch.float32)
 mnist_x_test = torch.tensor(test_images).to(torch.float32)
 mnist_y_test = torch.tensor(test_labels).to(torch.float32)
 
+mnist_train_dataset = TensorDataset(mnist_x_train,mnist_y_train)
+mnist_train_loader = DataLoader(mnist_train_dataset,batch_size=BATCH_SIZE,shuffle=True)
 
 # ----------------------- NEURAL NETWORK INITIALIZATION ---------------------- #
 class MnistClassifier(nn.Module):
@@ -165,11 +171,11 @@ class MnistClassifier(nn.Module):
 
 mnist_model = MnistClassifier()
 criterion_mnist = nn.CrossEntropyLoss()
-optimizer = optim.Adam(cancer_model.parameters(), lr=0.01)
+optimizer = optim.Adam(mnist_model.parameters(), lr=0.01)
 
 for epoch in range(EPOCHS):
     sum_loss = 0
-    for items, labels in zip(mnist_x_train, mnist_y_train):
+    for items, labels in mnist_train_loader:
         items = items[None,:,:]
         optimizer.zero_grad()
         outputs = mnist_model(items)
