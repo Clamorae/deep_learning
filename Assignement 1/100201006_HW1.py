@@ -44,7 +44,7 @@ optimizer = optim.Adam(boston_model.parameters(), lr=0.01)
 # --------------------------------- TRAINING --------------------------------- #
 y_boston_loss = []
 y_boston_diff = []
-for epoch in range(EPOCHS): 
+for epoch in range(0): 
     sum_loss = 0
     sum_difference = 0
     for data in trainloader:
@@ -60,9 +60,9 @@ for epoch in range(EPOCHS):
     y_boston_loss.append(sum_loss/len(trainloader))
     y_boston_diff.append(sum_difference/len(trainloader))
     print(f"[EPOCH {epoch}/{EPOCHS}] Average loss: {sum_loss/len(trainloader)}, Average difference: {sum_difference/len(trainloader)}")
-plt.plot(x, y_boston_diff)
-plt.plot(x, y_boston_loss)
-plt.savefig(PATH+"boston.png")
+# plt.plot(x, y_boston_diff)
+# plt.plot(x, y_boston_loss)
+# plt.savefig(PATH+"boston.png")
 
 # -------------------------------- EVALUATION -------------------------------- #
 with torch.no_grad():
@@ -83,5 +83,17 @@ with torch.no_grad():
 # ---------------------------------------------------------------------------- #
 
 
-# --------------------------------- CONSTANT --------------------------------- #
+# ---------------------------- DATA PREPROCESSING ---------------------------- #
 data_task2 = load_breast_cancer()
+x_train,x_test,y_train,y_test=train_test_split(data_task2.data,data_task2.target,test_size=0.2,random_state=5)
+
+class BinaryCancer(nn.Module):
+    def __init__(self):
+        super(BinaryCancer, self).__init__()
+        self.fc = nn.Linear(30, 15)
+        self.sig = nn.Sigmoid(15, 1)
+    
+    def forward(self, inp):
+        out = self.fc(inp)
+        out = self.sig(out)
+        return out
