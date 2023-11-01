@@ -1,11 +1,13 @@
 # ---------------------------------- IMPORT ---------------------------------- #
 import torch
+import numpy as np
+import pandas as pd
 import torch.nn as nn
 import torch.optim as optim
+import matplotlib.pyplot as plt
 
+from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
-
-import pandas as pd
 
 # ---------------------------------------------------------------------------- #
 #                                BOSTON HOUSING                                #
@@ -14,12 +16,12 @@ import pandas as pd
 
 # --------------------------------- CONSTANT --------------------------------- #
 PATH = "./introduction_deep/Assignement 1/"
+EPOCHS = 20
+x = np.linspace(0,EPOCHS-1,EPOCHS)
 
 # ------------------------------ DATASET LOADING ----------------------------- #  
 data = pd.read_csv(PATH+"TheBostonHousingDataset.csv").values
-data = train_test_split(data)
-# train = data[0]
-# test = data[1]
+data = train_test_split(data,train_size=int(80*len(data)/100))
 trainloader = torch.tensor(data[0])
 testloader = torch.tensor(data[1])
 
@@ -40,31 +42,46 @@ criterion = nn.MSELoss()
 optimizer = optim.Adam(boston_model.parameters(), lr=0.01)
 
 # --------------------------------- TRAINING --------------------------------- #
-for epoch in range(20):  # loop over the dataset multiple times
+y_boston_loss = []
+y_boston_diff = []
+for epoch in range(EPOCHS): 
+    sum_loss = 0
+    sum_difference = 0
     for data in trainloader:
-        # get the inputs; data is a list of [inputs, labels]
         inputs = data[:-1]
         labels = data[-1]
         optimizer.zero_grad()
         outputs = boston_model(inputs)
         loss = criterion(outputs, labels)
         loss.backward()
+        sum_loss+= loss.item()
+        sum_difference+= abs(labels-outputs.item())
         optimizer.step()
+    y_boston_loss.append(sum_loss/len(trainloader))
+    y_boston_diff.append(sum_difference/len(trainloader))
+    print(f"[EPOCH {epoch}/{EPOCHS}] Average loss: {sum_loss/len(trainloader)}, Average difference: {sum_difference/len(trainloader)}")
+plt.plot(x, y_boston_diff)
+plt.plot(x, y_boston_loss)
+plt.savefig(PATH+"boston.png")
 
 # -------------------------------- EVALUATION -------------------------------- #
-correct = 0
-total = 0
 with torch.no_grad():
+    sum_loss = 0
+    sum_difference = 0
     for data in testloader:
         inputs = data[:-1]
         labels = data[-1]
         outputs = boston_model(inputs)
-        print(f"output = {outputs.item()}, real value = {labels}, diff = {labels-outputs.item()}")
-
-
+        loss = criterion(outputs, labels)
+        sum_loss+= loss.item()
+        sum_difference+= abs(labels-outputs.item())
+    print(f"[VALIDATION] Average loss: {sum_loss/len(testloader)}, Average difference: {sum_difference/len(testloader)}")
 
 
 # ---------------------------------------------------------------------------- #
 #                                 BREAST CANCER                                #
 # ---------------------------------------------------------------------------- #
 
+
+# --------------------------------- CONSTANT --------------------------------- #
+data_task2 = load_breast_cancer()
