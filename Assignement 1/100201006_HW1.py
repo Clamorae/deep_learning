@@ -50,7 +50,7 @@ optimizer = optim.Adam(boston_model.parameters(), lr=0.01)
 # --------------------------------- TRAINING --------------------------------- #
 y_boston_loss = []
 y_boston_diff = []
-for epoch in range(0): 
+for epoch in range(EPOCHS): 
     sum_loss = 0
     sum_difference = 0
     for data in trainloader:
@@ -99,6 +99,9 @@ y_test = torch.tensor(y_test).unsqueeze(1).to(torch.float64)
 
 cancer_train_dataset = TensorDataset(x_train,y_train)
 cancer_train_loader = DataLoader(cancer_train_dataset,batch_size=BATCH_SIZE,shuffle=True)
+cancer_test_dataset = TensorDataset(x_test,y_test)
+cancer_test_loader = DataLoader(cancer_test_dataset,batch_size=BATCH_SIZE,shuffle=True)
+
 
 class BinaryCancer(nn.Module):
     def __init__(self):
@@ -129,9 +132,17 @@ for epoch in range(EPOCHS):
         loss.backward()
         sum_loss+= loss.item()
         optimizer.step()
-    print(f"[EPOCH {epoch}/{EPOCHS}] Average loss: {sum_loss/len(x_train)}")
+    print(f"[EPOCH {epoch}/{EPOCHS}] Average loss: {sum_loss/len(cancer_train_loader)}")
 
 
+# -------------------------------- VALIDATION -------------------------------- #
+sum_loss = 0
+for input,label in cancer_test_loader:
+    with torch.no_grad():
+        outputs = cancer_model(input)
+        loss = criterion_cancer(outputs, label)
+        sum_loss+= loss.item()
+print(f"[VALIDATION] Average loss: {sum_loss/len(cancer_test_loader)}")
 # ---------------------------------------------------------------------------- #
 #                                     MNIST                                    #
 # ---------------------------------------------------------------------------- #
@@ -155,8 +166,8 @@ class MnistClassifier(nn.Module):
     def __init__(self):
         super(MnistClassifier, self).__init__()
         self.relu = nn.ReLU()
-        self.conv1 = nn.Conv2d(1, 6, kernel_size=5)
-        self.conv2 = nn.Conv2d(6, 16, kernel_size=5)
+        self.conv1 = nn.Conv2d(64, 128, kernel_size=5)
+        self.conv2 = nn.Conv2d(128, 256, kernel_size=5)
         self.maxp = nn.MaxPool2d(2)
         self.smax = nn.Softmax()
     
