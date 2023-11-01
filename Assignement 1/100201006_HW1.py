@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
+from keras.datasets import fashion_mnist
 
 # ---------------------------------------------------------------------------- #
 #                                BOSTON HOUSING                                #
@@ -30,11 +31,14 @@ class BostonFFN(nn.Module):
     def __init__(self):
         super(BostonFFN, self).__init__()
         self.fc1 = nn.Linear(13, 6).to(torch.float64)
+        self.ReLU = nn.ReLU()
         self.fc2 = nn.Linear(6, 1).to(torch.float64)
     
     def forward(self, inp):
         out = self.fc1(inp)
+        out = self.ReLU(out)
         out = self.fc2(out)
+        out = self.ReLU(out)
         return out
 
 boston_model = BostonFFN()
@@ -86,14 +90,57 @@ with torch.no_grad():
 # ---------------------------- DATA PREPROCESSING ---------------------------- #
 data_task2 = load_breast_cancer()
 x_train,x_test,y_train,y_test=train_test_split(data_task2.data,data_task2.target,test_size=0.2,random_state=5)
+x_train = torch.tensor(x_train)
+y_train = torch.tensor(y_train).unsqueeze(1).to(torch.float64)
+x_test = torch.tensor(x_test)
+y_test = torch.tensor(y_test)
 
 class BinaryCancer(nn.Module):
     def __init__(self):
         super(BinaryCancer, self).__init__()
-        self.fc = nn.Linear(30, 15)
-        self.sig = nn.Sigmoid(15, 1)
+        self.fc = nn.Linear(30, 15).to(torch.float64)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(15, 1).to(torch.float64)
+        self.sig = nn.Sigmoid().to(torch.float64)
     
     def forward(self, inp):
         out = self.fc(inp)
+        out = self.relu(out)
+        out = self.fc2(out)
         out = self.sig(out)
         return out
+    
+cancer_model = BinaryCancer()
+criterion = nn.BCELoss()
+optimizer = optim.Adam(cancer_model.parameters(), lr=0.01)
+
+# --------------------------------- TRAINING --------------------------------- #
+for epoch in range(0): 
+    sum_loss = 0
+    for input,label in zip(x_train,y_train):
+        optimizer.zero_grad()
+        outputs = cancer_model(input)
+        loss = criterion(outputs, label)
+        loss.backward()
+        sum_loss+= loss.item()
+        optimizer.step()
+        print(f"Out:{outputs.item()}, Tar: {label.item()}")
+    print(f"[EPOCH {epoch}/{EPOCHS}] Average loss: {sum_loss/len(x_train)}")
+
+
+# ---------------------------------------------------------------------------- #
+#                                     MNSIT                                    #
+# ---------------------------------------------------------------------------- #
+
+
+# ---------------------------- DATA PREPROCESSING ---------------------------- #
+(train_images,train_labels),(test_images, test_labels) = fashion_mnist.load_data()
+
+mnist_x_train = torch.tensor(train_images)
+mnist_y_train = torch.tensor(train_labels)
+mnist_x_test = torch.tensor(test_images)
+mnist_y_test = torch.tensor(test_labels)
+
+
+# ----------------------- NEURAL NETWORK INITIALIZATION ---------------------- #
+
