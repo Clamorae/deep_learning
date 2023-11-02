@@ -22,11 +22,13 @@ EPOCHS = 20
 BATCH_SIZE = 64
 x = np.linspace(0,EPOCHS-1,EPOCHS)
 
+
 # ------------------------------ DATASET LOADING ----------------------------- #  
 data = pd.read_csv(PATH+"TheBostonHousingDataset.csv").values
 data = train_test_split(data,train_size=int(80*len(data)/100))
 trainloader = torch.tensor(data[0])
 testloader = torch.tensor(data[1])
+
 
 # -------------------------- NEURAL NETWORK CREATION ------------------------- #
 class BostonFFN(nn.Module):
@@ -47,10 +49,11 @@ boston_model = BostonFFN()
 criterion = nn.MSELoss()
 optimizer = optim.Adam(boston_model.parameters(), lr=0.01)
 
+
 # --------------------------------- TRAINING --------------------------------- #
 y_boston_loss = []
 y_boston_diff = []
-for epoch in range(EPOCHS): 
+for epoch in range(0): 
     sum_loss = 0
     sum_difference = 0
     for data in trainloader:
@@ -69,6 +72,7 @@ for epoch in range(EPOCHS):
 # plt.plot(x, y_boston_diff)
 # plt.plot(x, y_boston_loss)
 # plt.savefig(PATH+"boston.png")
+
 
 # -------------------------------- EVALUATION -------------------------------- #
 with torch.no_grad():
@@ -103,6 +107,7 @@ cancer_test_dataset = TensorDataset(x_test,y_test)
 cancer_test_loader = DataLoader(cancer_test_dataset,batch_size=BATCH_SIZE,shuffle=True)
 
 
+# ------------------------------ MODEL CREATION ------------------------------ #
 class BinaryCancer(nn.Module):
     def __init__(self):
         super(BinaryCancer, self).__init__()
@@ -122,8 +127,9 @@ cancer_model = BinaryCancer()
 criterion_cancer = nn.BCELoss()
 optimizer = optim.Adam(cancer_model.parameters(), lr=0.01)
 
+
 # --------------------------------- TRAINING --------------------------------- #
-for epoch in range(EPOCHS): 
+for epoch in range(0): 
     sum_loss = 0
     for input,label in cancer_train_loader:
         optimizer.zero_grad()
@@ -143,6 +149,8 @@ for input,label in cancer_test_loader:
         loss = criterion_cancer(outputs, label)
         sum_loss+= loss.item()
 print(f"[VALIDATION] Average loss: {sum_loss/len(cancer_test_loader)}")
+
+
 # ---------------------------------------------------------------------------- #
 #                                     MNIST                                    #
 # ---------------------------------------------------------------------------- #
@@ -153,45 +161,51 @@ print(f"[VALIDATION] Average loss: {sum_loss/len(cancer_test_loader)}")
 
 train_images, test_images = train_images/255,test_images/255
 
-mnist_x_train = torch.tensor(train_images).to(torch.float32)
-mnist_y_train = torch.tensor(train_labels).to(torch.float32)
-mnist_x_test = torch.tensor(test_images).to(torch.float32)
-mnist_y_test = torch.tensor(test_labels).to(torch.float32)
+mnist_x_train = torch.tensor(train_images).to(torch.float64)
+train_labels = [np.eye(1, 10, k = train_labels[i]) for i in train_labels]
+mnist_y_train = torch.tensor(train_labels).to(torch.float64)
+mnist_x_test = torch.tensor(test_images).to(torch.float64)
+mnist_y_test = torch.tensor(test_labels).to(torch.float64)
 
 mnist_train_dataset = TensorDataset(mnist_x_train,mnist_y_train)
 mnist_train_loader = DataLoader(mnist_train_dataset,batch_size=BATCH_SIZE,shuffle=True)
+
 
 # ----------------------- NEURAL NETWORK INITIALIZATION ---------------------- #
 class MnistClassifier(nn.Module):
     def __init__(self):
         super(MnistClassifier, self).__init__()
-        self.relu = nn.ReLU()
-        self.conv1 = nn.Conv2d(64, 128, kernel_size=5)
-        self.conv2 = nn.Conv2d(128, 256, kernel_size=5)
-        self.maxp = nn.MaxPool2d(2)
-        self.smax = nn.Softmax()
-    
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=5).to(torch.float64)
+        self.conv2 = nn.Conv2d(32, 16, kernel_size=5).to(torch.float64)
+        self.maxpool = nn.MaxPool2d(2).to(torch.float64)
+        self.fc1 = nn.Linear(16 * 4 * 4, 128).to(torch.float64)
+        self.fc2 = nn.Linear(128, 10).to(torch.float64)
+
     def forward(self, inp):
         out = self.conv1(inp)
-        out = self.maxp(out)
+        out = self.maxpool(out)
         out = self.conv2(out)
-        out = self.maxp(out)
-        out = self.relu(out)
-        out = self.smax(out)
+        out = self.maxpool(out)
+        out = out.view(out.size(0), -1)
+        out = self.fc1(out)
+        out = torch.relu(out)
+        out = self.fc2(out)
         return out
 
 mnist_model = MnistClassifier()
 criterion_mnist = nn.CrossEntropyLoss()
 optimizer = optim.Adam(mnist_model.parameters(), lr=0.01)
 
+
+# --------------------------------- TRAINING --------------------------------- #
 for epoch in range(EPOCHS):
     sum_loss = 0
     for items, labels in mnist_train_loader:
-        items = items[None,:,:]
+        items = items[:,None,:,:]
         optimizer.zero_grad()
         outputs = mnist_model(items)
         loss = criterion(outputs, labels)
         loss.backward()
-        sum_loss+= loss.item()
         optimizer.step()
-    print(f"[EPOCH {epoch}/{EPOCHS}] Average loss: {sum_loss/len(mnist_x_train)}")
+        sum_loss += loss.item()
+    print(f"[EPOCH {epoch}/{EPOCHS}] Average loss: {sum_loss/len(mnist_train_loader)}")
