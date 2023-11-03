@@ -16,12 +16,15 @@ from torch.utils.data import DataLoader,TensorDataset
 #                                BOSTON HOUSING                                #
 # ---------------------------------------------------------------------------- #
 
+print("# ------------------------------ BOSTON HOUSING ------------------------------ #")
 
 # --------------------------------- CONSTANT --------------------------------- #
 PATH = "./introduction_deep/Assignement 1/"
 EPOCHS = 20
 BATCH_SIZE = 64
 x = np.linspace(0,EPOCHS-1,EPOCHS)
+x_validation = np.linspace(0,EPOCHS-1,int(EPOCHS/5)+1)
+x_validation = x_validation[1:]
 
 
 # ------------------------------ DATASET LOADING ----------------------------- #  
@@ -43,7 +46,6 @@ class BostonFFN(nn.Module):
         out = self.fc1(inp)
         out = self.ReLU(out)
         out = self.fc2(out)
-        out = self.ReLU(out)
         return out
 
 boston_model = BostonFFN()
@@ -54,6 +56,7 @@ optimizer = optim.Adam(boston_model.parameters(), lr=0.01)
 # --------------------------------- TRAINING --------------------------------- #
 y_boston_loss = []
 y_boston_diff = []
+y_boston_val_loss = []
 for epoch in range(EPOCHS): 
     sum_loss = 0
     sum_difference = 0
@@ -74,20 +77,21 @@ for epoch in range(EPOCHS):
     
     # -------------------------------- VALIDATION -------------------------------- #
     if (epoch+1)%5==0:
-         with torch.no_grad():
-                sum_loss = 0
-                sum_difference = 0
-                for data in testloader:
-                    inputs = data[:-1]
-                    labels = data[-1]
-                    outputs = boston_model(inputs)
-                    loss = criterion(outputs, labels)
-                    sum_loss+= loss.item()
-                    sum_difference+= abs(labels-outputs.item())
-                print(f"[VALIDATION] Average loss: {sum_loss/len(testloader)}, Average difference: {sum_difference/len(testloader)}")
-
+        with torch.no_grad():
+            sum_loss = 0
+            sum_difference = 0
+            for data in testloader:
+                inputs = data[:-1]
+                labels = data[-1]
+                outputs = boston_model(inputs)
+                loss = criterion(outputs, labels)
+                sum_loss+= loss.item()
+                sum_difference+= abs(labels-outputs.item())
+            print(f"[VALIDATION] Average loss: {sum_loss/len(testloader)}, Average difference: {sum_difference/len(testloader)}")
+        y_boston_val_loss.append(sum_loss/len(testloader))
 plt.plot(x, y_boston_diff)
 plt.plot(x, y_boston_loss)
+plt.plot(x_validation,y_boston_val_loss)
 plt.savefig(PATH+"boston.png")   
 
 
@@ -95,6 +99,7 @@ plt.savefig(PATH+"boston.png")
 #                                 BREAST CANCER                                #
 # ---------------------------------------------------------------------------- #
 
+print("# ------------------------------- BREAST CANCER ------------------------------ #")
 
 # ---------------------------- DATA PREPROCESSING ---------------------------- #
 data_task2 = load_breast_cancer()
@@ -134,6 +139,7 @@ metric = BinaryAccuracy()
 # --------------------------------- TRAINING --------------------------------- #
 y_cancer_loss = []
 y_cancer_acc = []
+y_cancer_val_loss = []
 for epoch in range(EPOCHS): 
     sum_loss = 0
     accuracy = 0
@@ -158,16 +164,19 @@ for epoch in range(EPOCHS):
                 loss = criterion_cancer(outputs, label)
                 sum_loss+= loss.item()
         print(f"[VALIDATION] Average loss: {sum_loss*BATCH_SIZE/len(cancer_test_loader)}")
+        y_cancer_val_loss.append(sum_loss*BATCH_SIZE/len(cancer_test_loader))
 
 plt.clf()
 plt.plot(x,y_cancer_loss)
 plt.plot(x,y_cancer_acc)
+plt.plot(x_validation,y_cancer_val_loss)
 plt.savefig(PATH+"cancer.png")
 
 # ---------------------------------------------------------------------------- #
 #                                     MNIST                                    #
 # ---------------------------------------------------------------------------- #
 
+print("# ----------------------------------- MNIST ---------------------------------- #")
 
 # ---------------------------- DATA PREPROCESSING ---------------------------- #
 (train_images,train_labels),(test_images, test_labels) = fashion_mnist.load_data()
@@ -217,6 +226,7 @@ metric = Accuracy(task="multiclass", num_classes=10)
 # --------------------------------- TRAINING --------------------------------- #
 y_mnist_loss = []
 y_mnist_acc = []
+y_mnist_val_loss = []
 for epoch in range(EPOCHS):
     sum_loss = 0
     accuracy = 0
@@ -247,8 +257,10 @@ for epoch in range(EPOCHS):
                 sum_loss += loss.item()
                 
         print(f"[VALIDATION] Average loss: {sum_loss*BATCH_SIZE/len(mnist_train_loader)}")
+        y_cancer_val_loss.append(sum_loss*BATCH_SIZE/len(mnist_train_loader))
 
 plt.clf()
 plt.plot(x,y_mnist_loss)
 plt.plot(x,y_mnist_acc)
+plt.plot(x_validation,y_mnist_val_loss)
 plt.savefig(PATH+"mnist.png")
