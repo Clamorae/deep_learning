@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 from keras.datasets import fashion_mnist
+from torchmetrics.classification import BinaryAccuracy,Accuracy
 from torch.utils.data import DataLoader,TensorDataset
 
 # ---------------------------------------------------------------------------- #
@@ -53,7 +54,7 @@ optimizer = optim.Adam(boston_model.parameters(), lr=0.01)
 # --------------------------------- TRAINING --------------------------------- #
 y_boston_loss = []
 y_boston_diff = []
-for epoch in range(0): 
+for epoch in range(EPOCHS): 
     sum_loss = 0
     sum_difference = 0
     for data in trainloader:
@@ -68,24 +69,26 @@ for epoch in range(0):
         optimizer.step()
     y_boston_loss.append(sum_loss/len(trainloader))
     y_boston_diff.append(sum_difference/len(trainloader))
-    print(f"[EPOCH {epoch}/{EPOCHS}] Average loss: {sum_loss/len(trainloader)}, Average difference: {sum_difference/len(trainloader)}")
-# plt.plot(x, y_boston_diff)
-# plt.plot(x, y_boston_loss)
-# plt.savefig(PATH+"boston.png")
+    print(f"[EPOCH {epoch+1}/{EPOCHS}] Average loss: {sum_loss/len(trainloader)}, Average difference: {sum_difference/len(trainloader)}")
+    
+    
+    # -------------------------------- VALIDATION -------------------------------- #
+    if (epoch+1)%5==0:
+         with torch.no_grad():
+                sum_loss = 0
+                sum_difference = 0
+                for data in testloader:
+                    inputs = data[:-1]
+                    labels = data[-1]
+                    outputs = boston_model(inputs)
+                    loss = criterion(outputs, labels)
+                    sum_loss+= loss.item()
+                    sum_difference+= abs(labels-outputs.item())
+                print(f"[VALIDATION] Average loss: {sum_loss/len(testloader)}, Average difference: {sum_difference/len(testloader)}")
 
-
-# -------------------------------- EVALUATION -------------------------------- #
-with torch.no_grad():
-    sum_loss = 0
-    sum_difference = 0
-    for data in testloader:
-        inputs = data[:-1]
-        labels = data[-1]
-        outputs = boston_model(inputs)
-        loss = criterion(outputs, labels)
-        sum_loss+= loss.item()
-        sum_difference+= abs(labels-outputs.item())
-    print(f"[VALIDATION] Average loss: {sum_loss/len(testloader)}, Average difference: {sum_difference/len(testloader)}")
+plt.plot(x, y_boston_diff)
+plt.plot(x, y_boston_loss)
+plt.savefig(PATH+"boston.png")   
 
 
 # ---------------------------------------------------------------------------- #
@@ -126,11 +129,12 @@ class BinaryCancer(nn.Module):
 cancer_model = BinaryCancer()
 criterion_cancer = nn.BCELoss()
 optimizer = optim.Adam(cancer_model.parameters(), lr=0.01)
-
+metric = BinaryAccuracy()
 
 # --------------------------------- TRAINING --------------------------------- #
-for epoch in range(0): 
+for epoch in range(EPOCHS): 
     sum_loss = 0
+    accuracy = 0
     for input,label in cancer_train_loader:
         optimizer.zero_grad()
         outputs = cancer_model(input)
@@ -138,17 +142,19 @@ for epoch in range(0):
         loss.backward()
         sum_loss+= loss.item()
         optimizer.step()
-    print(f"[EPOCH {epoch}/{EPOCHS}] Average loss: {sum_loss/len(cancer_train_loader)}")
-
-
-# -------------------------------- VALIDATION -------------------------------- #
-sum_loss = 0
-for input,label in cancer_test_loader:
-    with torch.no_grad():
-        outputs = cancer_model(input)
-        loss = criterion_cancer(outputs, label)
-        sum_loss+= loss.item()
-print(f"[VALIDATION] Average loss: {sum_loss/len(cancer_test_loader)}")
+        accuracy+=metric(outputs,label)
+    print(f"[EPOCH {epoch+1}/{EPOCHS}] Average loss: {sum_loss*BATCH_SIZE/len(cancer_train_loader)}, Accuracy: {accuracy*BATCH_SIZE/len(cancer_train_loader)}%")
+    
+    
+    # -------------------------------- VALIDATION -------------------------------- #
+    if (epoch+1)%5==0:
+        sum_loss = 0
+        for input,label in cancer_test_loader:
+            with torch.no_grad():
+                outputs = cancer_model(input)
+                loss = criterion_cancer(outputs, label)
+                sum_loss+= loss.item()
+        print(f"[VALIDATION] Average loss: {sum_loss*BATCH_SIZE/len(cancer_test_loader)}")
 
 
 # ---------------------------------------------------------------------------- #
@@ -165,10 +171,13 @@ mnist_x_train = torch.tensor(train_images).to(torch.float64)
 train_labels = [np.eye(1, 10, k = train_labels[i]) for i in train_labels]
 mnist_y_train = torch.tensor(train_labels).to(torch.float64)
 mnist_x_test = torch.tensor(test_images).to(torch.float64)
+test_labels = [np.eye(1, 10, k = test_labels[i]) for i in test_labels]
 mnist_y_test = torch.tensor(test_labels).to(torch.float64)
 
 mnist_train_dataset = TensorDataset(mnist_x_train,mnist_y_train)
 mnist_train_loader = DataLoader(mnist_train_dataset,batch_size=BATCH_SIZE,shuffle=True)
+mnist_test_dataset = TensorDataset(mnist_x_test,mnist_y_test)
+mnist_test_loader = DataLoader(mnist_test_dataset,batch_size=BATCH_SIZE,shuffle=True)
 
 
 # ----------------------- NEURAL NETWORK INITIALIZATION ---------------------- #
@@ -195,11 +204,13 @@ class MnistClassifier(nn.Module):
 mnist_model = MnistClassifier()
 criterion_mnist = nn.CrossEntropyLoss()
 optimizer = optim.Adam(mnist_model.parameters(), lr=0.01)
+metric = Accuracy(task="multiclass", num_classes=10)
 
 
 # --------------------------------- TRAINING --------------------------------- #
 for epoch in range(EPOCHS):
     sum_loss = 0
+    accuracy = 0
     for items, labels in mnist_train_loader:
         items = items[:,None,:,:]
         optimizer.zero_grad()
@@ -208,4 +219,21 @@ for epoch in range(EPOCHS):
         loss.backward()
         optimizer.step()
         sum_loss += loss.item()
-    print(f"[EPOCH {epoch}/{EPOCHS}] Average loss: {sum_loss/len(mnist_train_loader)}")
+        outputs = outputs.view(-1,1,10)
+        accuracy += metric(outputs,labels)
+    print(f"[EPOCH {epoch+1}/{EPOCHS}] Average loss: {sum_loss*BATCH_SIZE/len(mnist_train_loader)},Accuracy: {accuracy*BATCH_SIZE/len(mnist_test_loader)}%")
+    
+    
+    # -------------------------------- VALIDATION -------------------------------- #
+    if (epoch+1)%5==0:
+        sum_loss = 0
+        accuracy = 0
+        for items, labels in mnist_test_loader:
+            with torch.no_grad():
+                items = items[:,None,:,:]
+                outputs = mnist_model(items)
+                loss = criterion(outputs, labels)
+                sum_loss += loss.item()
+                
+        print(f"[VALIDATION] Average loss: {sum_loss*BATCH_SIZE/len(mnist_train_loader)}")
+
