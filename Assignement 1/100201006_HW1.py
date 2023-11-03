@@ -132,6 +132,8 @@ optimizer = optim.Adam(cancer_model.parameters(), lr=0.01)
 metric = BinaryAccuracy()
 
 # --------------------------------- TRAINING --------------------------------- #
+y_cancer_loss = []
+y_cancer_acc = []
 for epoch in range(EPOCHS): 
     sum_loss = 0
     accuracy = 0
@@ -144,7 +146,8 @@ for epoch in range(EPOCHS):
         optimizer.step()
         accuracy+=metric(outputs,label)
     print(f"[EPOCH {epoch+1}/{EPOCHS}] Average loss: {sum_loss*BATCH_SIZE/len(cancer_train_loader)}, Accuracy: {accuracy*BATCH_SIZE/len(cancer_train_loader)}%")
-    
+    y_cancer_loss.append(sum_loss*BATCH_SIZE/len(cancer_train_loader))
+    y_cancer_acc.append(accuracy*BATCH_SIZE/len(cancer_train_loader))
     
     # -------------------------------- VALIDATION -------------------------------- #
     if (epoch+1)%5==0:
@@ -156,6 +159,10 @@ for epoch in range(EPOCHS):
                 sum_loss+= loss.item()
         print(f"[VALIDATION] Average loss: {sum_loss*BATCH_SIZE/len(cancer_test_loader)}")
 
+plt.clf()
+plt.plot(x,y_cancer_loss)
+plt.plot(x,y_cancer_acc)
+plt.savefig(PATH+"cancer.png")
 
 # ---------------------------------------------------------------------------- #
 #                                     MNIST                                    #
@@ -208,6 +215,8 @@ metric = Accuracy(task="multiclass", num_classes=10)
 
 
 # --------------------------------- TRAINING --------------------------------- #
+y_mnist_loss = []
+y_mnist_acc = []
 for epoch in range(EPOCHS):
     sum_loss = 0
     accuracy = 0
@@ -215,14 +224,15 @@ for epoch in range(EPOCHS):
         items = items[:,None,:,:]
         optimizer.zero_grad()
         outputs = mnist_model(items)
+        outputs = outputs.view(-1,1,10)
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
         sum_loss += loss.item()
-        outputs = outputs.view(-1,1,10)
         accuracy += metric(outputs,labels)
     print(f"[EPOCH {epoch+1}/{EPOCHS}] Average loss: {sum_loss*BATCH_SIZE/len(mnist_train_loader)},Accuracy: {accuracy*BATCH_SIZE/len(mnist_test_loader)}%")
-    
+    y_mnist_loss.append(sum_loss*BATCH_SIZE/len(mnist_train_loader))
+    y_mnist_acc.append(accuracy*BATCH_SIZE/len(mnist_test_loader))
     
     # -------------------------------- VALIDATION -------------------------------- #
     if (epoch+1)%5==0:
@@ -232,8 +242,13 @@ for epoch in range(EPOCHS):
             with torch.no_grad():
                 items = items[:,None,:,:]
                 outputs = mnist_model(items)
+                outputs = outputs.view(-1,1,10)
                 loss = criterion(outputs, labels)
                 sum_loss += loss.item()
                 
         print(f"[VALIDATION] Average loss: {sum_loss*BATCH_SIZE/len(mnist_train_loader)}")
 
+plt.clf()
+plt.plot(x,y_mnist_loss)
+plt.plot(x,y_mnist_acc)
+plt.savefig(PATH+"mnist.png")
