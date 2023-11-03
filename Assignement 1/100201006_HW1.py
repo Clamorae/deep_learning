@@ -57,7 +57,7 @@ optimizer = optim.Adam(boston_model.parameters(), lr=0.01)
 y_boston_loss = []
 y_boston_diff = []
 y_boston_val_loss = []
-for epoch in range(EPOCHS): 
+for epoch in range(0): 
     sum_loss = 0
     sum_difference = 0
     for data in trainloader:
@@ -89,10 +89,10 @@ for epoch in range(EPOCHS):
                 sum_difference+= abs(labels-outputs.item())
             print(f"[VALIDATION] Average loss: {sum_loss/len(testloader)}, Average difference: {sum_difference/len(testloader)}")
         y_boston_val_loss.append(sum_loss/len(testloader))
-plt.plot(x, y_boston_diff)
-plt.plot(x, y_boston_loss)
-plt.plot(x_validation,y_boston_val_loss)
-plt.savefig(PATH+"boston.png")   
+#plt.plot(x, y_boston_diff)
+#plt.plot(x, y_boston_loss)
+#plt.plot(x_validation,y_boston_val_loss)
+#plt.savefig(PATH+"boston.png")   
 
 
 # ---------------------------------------------------------------------------- #
@@ -140,7 +140,7 @@ metric = BinaryAccuracy()
 y_cancer_loss = []
 y_cancer_acc = []
 y_cancer_val_loss = []
-for epoch in range(EPOCHS): 
+for epoch in range(0): 
     sum_loss = 0
     accuracy = 0
     for input,label in cancer_train_loader:
@@ -166,12 +166,12 @@ for epoch in range(EPOCHS):
         print(f"[VALIDATION] Average loss: {sum_loss*BATCH_SIZE/len(cancer_test_loader)}")
         y_cancer_val_loss.append(sum_loss*BATCH_SIZE/len(cancer_test_loader))
 
-plt.clf()
-plt.ylim(0,100)
-plt.plot(x,y_cancer_loss)
-plt.plot(x,y_cancer_acc)
-plt.plot(x_validation,y_cancer_val_loss)
-plt.savefig(PATH+"cancer.png")
+#plt.clf()
+#plt.ylim(0,100)
+#plt.plot(x,y_cancer_loss)
+#plt.plot(x,y_cancer_acc)
+#plt.plot(x_validation,y_cancer_val_loss)
+#plt.savefig(PATH+"cancer.png")
 
 # ---------------------------------------------------------------------------- #
 #                                     MNIST                                    #
@@ -185,7 +185,7 @@ print("# ----------------------------------- MNIST -----------------------------
 train_images, test_images = train_images/255,test_images/255
 
 mnist_x_train = torch.tensor(train_images).to(torch.float64)
-train_labels = [np.eye(1, 10, k = train_labels[i]) for i in train_labels]
+train_labels = [np.array([1 if i == num else 0 for i in range(10)]) for num in train_labels]
 mnist_y_train = torch.tensor(train_labels).to(torch.float64)
 mnist_x_test = torch.tensor(test_images).to(torch.float64)
 test_labels = [np.eye(1, 10, k = test_labels[i]) for i in test_labels]
@@ -202,19 +202,24 @@ class MnistClassifier(nn.Module):
     def __init__(self):
         super(MnistClassifier, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, kernel_size=5).to(torch.float64)
-        self.conv2 = nn.Conv2d(32, 16, kernel_size=5).to(torch.float64)
-        self.maxpool = nn.MaxPool2d(2).to(torch.float64)
-        self.fc1 = nn.Linear(16 * 4 * 4, 128).to(torch.float64)
-        self.fc2 = nn.Linear(128, 10).to(torch.float64)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=5).to(torch.float64)
+        self.maxpool1 = nn.MaxPool2d(2,2).to(torch.float64)
+        self.maxpool2 = nn.MaxPool2d(2).to(torch.float64)
+        self.fc1 = nn.Linear(64 * 4 * 4, 512).to(torch.float64)
+        self.drop = nn.Dropout(0.25)
+        self.fc2 = nn.Linear(512, 10).to(torch.float64)
+        self.relu = nn.ReLU()
 
     def forward(self, inp):
         out = self.conv1(inp)
-        out = self.maxpool(out)
+        out = self.relu(out)
+        out = self.maxpool1(out)
         out = self.conv2(out)
-        out = self.maxpool(out)
+        out = self.relu(out)
+        out = self.maxpool2(out)
         out = out.view(out.size(0), -1)
         out = self.fc1(out)
-        out = torch.relu(out)
+        out = self.drop(out)
         out = self.fc2(out)
         return out
 
@@ -230,20 +235,25 @@ y_mnist_acc = []
 y_mnist_val_loss = []
 for epoch in range(EPOCHS):
     sum_loss = 0
-    accuracy = 0
+    tp = 0
+    total = 0
     for items, labels in mnist_train_loader:
         items = items[:,None,:,:]
         optimizer.zero_grad()
         outputs = mnist_model(items)
-        outputs = outputs.view(-1,1,10)
+        compare = torch.argmax(outputs,1)
+        for pred,tar in zip(compare,labels):
+            targ = torch.argmax(tar,0)
+            if pred == targ:
+                tp+=1
+            total += 1
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
         sum_loss += loss.item()
-        accuracy += metric(outputs,labels)
-    print(f"[EPOCH {epoch+1}/{EPOCHS}] Average loss: {sum_loss*BATCH_SIZE/len(mnist_train_loader)},Accuracy: {accuracy*BATCH_SIZE/len(mnist_test_loader)}%")
+    print(f"[EPOCH {epoch+1}/{EPOCHS}] Average loss: {sum_loss*BATCH_SIZE/len(mnist_train_loader)},Accuracy: {tp*100/total}%")
     y_mnist_loss.append(sum_loss*BATCH_SIZE/len(mnist_train_loader))
-    y_mnist_acc.append(accuracy*BATCH_SIZE/len(mnist_test_loader))
+    y_mnist_acc.append(tp*100/total)
     
     # -------------------------------- VALIDATION -------------------------------- #
     if (epoch+1)%5==0:
