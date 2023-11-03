@@ -12,11 +12,6 @@ from keras.datasets import fashion_mnist
 from torchmetrics.classification import BinaryAccuracy,Accuracy
 from torch.utils.data import DataLoader,TensorDataset
 
-# ---------------------------------------------------------------------------- #
-#                                BOSTON HOUSING                                #
-# ---------------------------------------------------------------------------- #
-
-print("# ------------------------------ BOSTON HOUSING ------------------------------ #")
 
 # --------------------------------- CONSTANT --------------------------------- #
 PATH = "./introduction_deep/Assignement 1/"
@@ -26,6 +21,12 @@ x = np.linspace(0,EPOCHS-1,EPOCHS)
 x_validation = np.linspace(0,EPOCHS-1,int(EPOCHS/5)+1)
 x_validation = x_validation[1:]
 
+
+# ---------------------------------------------------------------------------- #
+#                                BOSTON HOUSING                                #
+# ---------------------------------------------------------------------------- #
+
+print("# ------------------------------ BOSTON HOUSING ------------------------------ #")
 
 # ------------------------------ DATASET LOADING ----------------------------- #  
 data = pd.read_csv(PATH+"TheBostonHousingDataset.csv").values
@@ -57,7 +58,7 @@ optimizer = optim.Adam(boston_model.parameters(), lr=0.01)
 y_boston_loss = []
 y_boston_diff = []
 y_boston_val_loss = []
-for epoch in range(0): 
+for epoch in range(EPOCHS): 
     sum_loss = 0
     sum_difference = 0
     for data in trainloader:
@@ -89,10 +90,10 @@ for epoch in range(0):
                 sum_difference+= abs(labels-outputs.item())
             print(f"[VALIDATION] Average loss: {sum_loss/len(testloader)}, Average difference: {sum_difference/len(testloader)}")
         y_boston_val_loss.append(sum_loss/len(testloader))
-#plt.plot(x, y_boston_diff)
-#plt.plot(x, y_boston_loss)
-#plt.plot(x_validation,y_boston_val_loss)
-#plt.savefig(PATH+"boston.png")   
+plt.plot(x, y_boston_diff)
+plt.plot(x, y_boston_loss)
+plt.plot(x_validation,y_boston_val_loss)
+plt.savefig(PATH+"boston.png")   
 
 
 # ---------------------------------------------------------------------------- #
@@ -140,7 +141,8 @@ metric = BinaryAccuracy()
 y_cancer_loss = []
 y_cancer_acc = []
 y_cancer_val_loss = []
-for epoch in range(0): 
+y_cancer_val_acc = []
+for epoch in range(EPOCHS): 
     sum_loss = 0
     accuracy = 0
     for input,label in cancer_train_loader:
@@ -158,20 +160,24 @@ for epoch in range(0):
     # -------------------------------- VALIDATION -------------------------------- #
     if (epoch+1)%5==0:
         sum_loss = 0
+        accuracy = 0
         for input,label in cancer_test_loader:
             with torch.no_grad():
                 outputs = cancer_model(input)
                 loss = criterion_cancer(outputs, label)
                 sum_loss+= loss.item()
-        print(f"[VALIDATION] Average loss: {sum_loss*BATCH_SIZE/len(cancer_test_loader)}")
+                accuracy+=metric(outputs,label)
+        print(f"[VALIDATION] Average loss: {sum_loss*BATCH_SIZE/len(cancer_test_loader)}, Accuracy: {accuracy*BATCH_SIZE/len(cancer_test_loader)}")
         y_cancer_val_loss.append(sum_loss*BATCH_SIZE/len(cancer_test_loader))
+        y_cancer_val_acc.append(accuracy*BATCH_SIZE/len(cancer_test_loader))
 
-#plt.clf()
-#plt.ylim(0,100)
-#plt.plot(x,y_cancer_loss)
-#plt.plot(x,y_cancer_acc)
-#plt.plot(x_validation,y_cancer_val_loss)
-#plt.savefig(PATH+"cancer.png")
+plt.clf()
+plt.ylim(0,100)
+plt.plot(x,y_cancer_loss)
+plt.plot(x,y_cancer_acc)
+plt.plot(x_validation,y_cancer_val_loss)
+plt.plot(x_validation,y_cancer_val_acc)
+plt.savefig(PATH+"cancer.png")
 
 # ---------------------------------------------------------------------------- #
 #                                     MNIST                                    #
@@ -188,7 +194,7 @@ mnist_x_train = torch.tensor(train_images).to(torch.float64)
 train_labels = [np.array([1 if i == num else 0 for i in range(10)]) for num in train_labels]
 mnist_y_train = torch.tensor(train_labels).to(torch.float64)
 mnist_x_test = torch.tensor(test_images).to(torch.float64)
-test_labels = [np.eye(1, 10, k = test_labels[i]) for i in test_labels]
+test_labels = [np.array([1 if i == num else 0 for i in range(10)]) for num in test_labels]
 mnist_y_test = torch.tensor(test_labels).to(torch.float64)
 
 mnist_train_dataset = TensorDataset(mnist_x_train,mnist_y_train)
@@ -233,6 +239,7 @@ metric = Accuracy(task="multiclass", num_classes=10)
 y_mnist_loss = []
 y_mnist_acc = []
 y_mnist_val_loss = []
+y_mnist_val_acc = []
 for epoch in range(EPOCHS):
     sum_loss = 0
     tp = 0
@@ -247,31 +254,39 @@ for epoch in range(EPOCHS):
             if pred == targ:
                 tp+=1
             total += 1
-        loss = criterion(outputs, labels)
+        loss = criterion_mnist(outputs, labels)
         loss.backward()
         optimizer.step()
         sum_loss += loss.item()
-    print(f"[EPOCH {epoch+1}/{EPOCHS}] Average loss: {sum_loss*BATCH_SIZE/len(mnist_train_loader)},Accuracy: {tp*100/total}%")
+    print(f"[EPOCH {epoch+1}/{EPOCHS}] Average loss: {sum_loss*BATCH_SIZE/len(mnist_train_loader)}, Accuracy: {tp*100/total}%")
     y_mnist_loss.append(sum_loss*BATCH_SIZE/len(mnist_train_loader))
     y_mnist_acc.append(tp*100/total)
     
     # -------------------------------- VALIDATION -------------------------------- #
-    if (epoch+1)%5==0:
+    if (epoch+1)%1==0:
         sum_loss = 0
-        accuracy = 0
+        tp = 0
+        total = 0
         for items, labels in mnist_test_loader:
             with torch.no_grad():
                 items = items[:,None,:,:]
                 outputs = mnist_model(items)
-                outputs = outputs.view(-1,1,10)
-                loss = criterion(outputs, labels)
+                compare = torch.argmax(outputs,1)
+                for pred,tar in zip(compare,labels):
+                    targ = torch.argmax(tar,0)
+                    if pred == targ:
+                        tp+=1
+                    total += 1
+                loss = criterion_mnist(outputs, labels)
                 sum_loss += loss.item()
                 
-        print(f"[VALIDATION] Average loss: {sum_loss*BATCH_SIZE/len(mnist_train_loader)}")
+        print(f"[VALIDATION] Average loss: {sum_loss*BATCH_SIZE/len(mnist_train_loader)}, Accuracy: {tp*100/total}%")
         y_mnist_val_loss.append(sum_loss*BATCH_SIZE/len(mnist_train_loader))
+        y_mnist_val_acc.append(tp*100/total)
 
 plt.clf()
 plt.plot(x,y_mnist_loss)
 plt.plot(x,y_mnist_acc)
 plt.plot(x_validation,y_mnist_val_loss)
+plt.plasma(x_validation,y_mnist_val_acc)
 plt.savefig(PATH+"mnist.png")
