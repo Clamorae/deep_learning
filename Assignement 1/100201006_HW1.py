@@ -133,7 +133,7 @@ class BinaryCancer(nn.Module):
     
 cancer_model = BinaryCancer()
 criterion_cancer = nn.BCELoss()
-optimizer = optim.Adam(cancer_model.parameters(), lr=0.01)
+optimizer = optim.Adam(cancer_model.parameters(), lr=0.001)
 metric = BinaryAccuracy()
 
 # --------------------------------- TRAINING --------------------------------- #
@@ -167,6 +167,7 @@ for epoch in range(EPOCHS):
         y_cancer_val_loss.append(sum_loss*BATCH_SIZE/len(cancer_test_loader))
 
 plt.clf()
+plt.ylim(0,100)
 plt.plot(x,y_cancer_loss)
 plt.plot(x,y_cancer_acc)
 plt.plot(x_validation,y_cancer_val_loss)
@@ -257,7 +258,7 @@ for epoch in range(EPOCHS):
                 sum_loss += loss.item()
                 
         print(f"[VALIDATION] Average loss: {sum_loss*BATCH_SIZE/len(mnist_train_loader)}")
-        y_cancer_val_loss.append(sum_loss*BATCH_SIZE/len(mnist_train_loader))
+        y_mnist_val_loss.append(sum_loss*BATCH_SIZE/len(mnist_train_loader))
 
 plt.clf()
 plt.plot(x,y_mnist_loss)
