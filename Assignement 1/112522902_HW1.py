@@ -90,6 +90,7 @@ for epoch in range(EPOCHS):
                 sum_difference+= abs(labels-outputs.item())
             print(f"[VALIDATION] Average loss: {sum_loss/len(testloader)}, Average difference: {sum_difference/len(testloader)}")
         y_boston_val_loss.append(sum_loss/len(testloader))
+
 plt.plot(x, y_boston_diff)
 plt.plot(x, y_boston_loss)
 plt.plot(x_validation,y_boston_val_loss)
@@ -134,7 +135,7 @@ class BinaryCancer(nn.Module):
     
 cancer_model = BinaryCancer()
 criterion_cancer = nn.BCELoss()
-optimizer = optim.Adam(cancer_model.parameters(), lr=0.001)
+optimizer = optim.Adam(cancer_model.parameters(), lr=0.005)
 metric = BinaryAccuracy()
 
 # --------------------------------- TRAINING --------------------------------- #
@@ -232,7 +233,6 @@ class MnistClassifier(nn.Module):
 mnist_model = MnistClassifier()
 criterion_mnist = nn.CrossEntropyLoss()
 optimizer = optim.Adam(mnist_model.parameters(), lr=0.01)
-metric = Accuracy(task="multiclass", num_classes=10)
 
 
 # --------------------------------- TRAINING --------------------------------- #
@@ -263,7 +263,7 @@ for epoch in range(EPOCHS):
     y_mnist_acc.append(tp*100/total)
     
     # -------------------------------- VALIDATION -------------------------------- #
-    if (epoch+1)%1==0:
+    if (epoch+1)%5==0:
         sum_loss = 0
         tp = 0
         total = 0
@@ -280,13 +280,13 @@ for epoch in range(EPOCHS):
                 loss = criterion_mnist(outputs, labels)
                 sum_loss += loss.item()
                 
-        print(f"[VALIDATION] Average loss: {sum_loss*BATCH_SIZE/len(mnist_train_loader)}, Accuracy: {tp*100/total}%")
-        y_mnist_val_loss.append(sum_loss*BATCH_SIZE/len(mnist_train_loader))
+        print(f"[VALIDATION] Average loss: {sum_loss*BATCH_SIZE/len(mnist_test_loader)}, Accuracy: {tp*100/total}%")
+        y_mnist_val_loss.append(sum_loss*BATCH_SIZE/len(mnist_test_loader))
         y_mnist_val_acc.append(tp*100/total)
 
 plt.clf()
 plt.plot(x,y_mnist_loss)
 plt.plot(x,y_mnist_acc)
 plt.plot(x_validation,y_mnist_val_loss)
-plt.plasma(x_validation,y_mnist_val_acc)
+plt.plot(x_validation,y_mnist_val_acc)
 plt.savefig(PATH+"mnist.png")
