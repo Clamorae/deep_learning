@@ -3,17 +3,21 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
+import matplotlib as plt
 
 from torch.utils.data import DataLoader,TensorDataset
 
 #SECTION - Constants
 # --------------------------------- CONSTANTS -------------------------------- #
 
-BATCH_SIZE = 32
+BATCH_SIZE = 128
 learning_rate = 0.01
-hidden_size = 64
+hidden_size = 128
 EPOCHS = 20
 
+x = np.linspace(0,EPOCHS-1,EPOCHS)
+x_validation = np.linspace(0,EPOCHS-1,int(EPOCHS/5)+1)
+x_validation = x_validation[1:]
 
 #SECTION - Data retrieving
 # ------------------------------ DATA RETRIEVING ----------------------------- #
@@ -81,9 +85,11 @@ test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True)
 class LSTM(nn.Module):
     def __init__(self, input_size,hidden_size,output_size):
         super(LSTM,self).__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size,batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
-        self.sMax = nn.Softmax()
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers=2, batch_first=True)
+ 
+        self.fc1 = nn.Linear(hidden_size, int(hidden_size/2))
+        self.drop = nn.Dropout(0.25)
+        self.fc2 = nn.Linear(int(hidden_size/2),output_size)
         
     
     def forward(self,x):
@@ -93,20 +99,24 @@ class LSTM(nn.Module):
         x = x.unsqueeze(1)
 
         x,(h0,c0) = self.lstm(x,(h0,c0))
-        x = self.fc(x)
-        x = self.sMax(x)
+        x = self.fc1(x)
+        x = self.drop(x)
+        x = self.fc2(x)
 
         return x
     
 model = LSTM(input_size,hidden_size,len(labels_list))
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(),lr=learning_rate)
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
+
 
 #SECTION - Training
 # --------------------------------- TRAINING --------------------------------- #
 
 for epoch in range(EPOCHS):
     sum_loss = 0
+    total = 0
     TP = 0
     for batch, (items,label) in enumerate(train_loader):
         optimizer.zero_grad()
@@ -114,27 +124,40 @@ for epoch in range(EPOCHS):
         outputs = outputs.view(-1,6)
         loss = criterion(outputs,label.to(torch.float))
         for output,answer in zip(outputs,label):
-            if torch.argmax(output) == torch.argmax(answer):
-                TP+=1      
+            total+=1
+            if(torch.argmax(output) == torch.argmax(answer)):
+                TP+=1   
         loss.backward()
         optimizer.step()
         sum_loss += loss.item()
     
-    print(f"Epoch {epoch+1}/{EPOCHS}, Loss: {sum_loss/len(train_loader)}, Accuracy: {TP/len(train_loader)}")
+    print(f"Epoch {epoch+1}/{EPOCHS}, Loss: {sum_loss/len(train_loader)}, Accuracy: {TP*100/total}")
 
 #SECTION - Evaluate
 # ----------------------------------- TEST ----------------------------------- #
 
     if (epoch+1)%5 == 0:
         TP=0
+        total = 0
         for batch, (items,label) in enumerate(test_loader):
             with torch.no_grad():
                 outputs = model(items)
                 outputs = outputs.view(-1,6)
                 loss = criterion(outputs,label.to(torch.float))
                 for output,answer in zip(outputs,label):
-                    if torch.argmax(output) == torch.argmax(answer):
-                        TP+=1      
+                    total+=1
+                    if(torch.argmax(output) == torch.argmax(answer)):
+                        TP+=1  
                 sum_loss += loss.item()
         
-        print(f"VALIDATION, Loss: {sum_loss/len(test_loader)}, Accuracy: {TP/len(train_loader)}")
+        print(f"VALIDATION, Loss: {sum_loss/len(test_loader)}, Accuracy: {TP*100/total}")
+
+
+#SECTION - Plotting
+# --------------------------------- PLOTTING --------------------------------- #
+# plt.clf()
+# plt.plot(x,y_mnist_loss)
+# plt.plot(x,y_mnist_acc)
+# plt.plot(x_validation,y_mnist_val_loss)
+# plt.plot(x_validation,y_mnist_val_acc)
+# plt.savefig("./human_activity.png")
