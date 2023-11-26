@@ -85,7 +85,7 @@ test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True)
 class LSTM(nn.Module):
     def __init__(self, input_size,hidden_size,output_size):
         super(LSTM,self).__init__()
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers=2, batch_first=True)
+        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
  
         self.fc1 = nn.Linear(hidden_size, int(hidden_size/2))
         self.drop = nn.Dropout(0.25)
@@ -108,8 +108,6 @@ class LSTM(nn.Module):
 model = LSTM(input_size,hidden_size,len(labels_list))
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(),lr=learning_rate)
-scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
-
 
 #SECTION - Training
 # --------------------------------- TRAINING --------------------------------- #
