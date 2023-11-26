@@ -107,14 +107,34 @@ optimizer = optim.Adam(model.parameters(),lr=learning_rate)
 
 for epoch in range(EPOCHS):
     sum_loss = 0
+    TP = 0
     for batch, (items,label) in enumerate(train_loader):
         optimizer.zero_grad()
         outputs = model(items)
-        outputs = outputs.view(-1,6)#.to(torch.float)
+        outputs = outputs.view(-1,6)
         loss = criterion(outputs,label.to(torch.float))
+        for output,answer in zip(outputs,label):
+            if torch.argmax(output) == torch.argmax(answer):
+                TP+=1      
         loss.backward()
         optimizer.step()
         sum_loss += loss.item()
     
-    print(f"Epoch {epoch+1}/{EPOCHS}, Loss: {sum_loss/len(train_loader)}")
+    print(f"Epoch {epoch+1}/{EPOCHS}, Loss: {sum_loss/len(train_loader)}, Accuracy: {TP/len(train_loader)}")
 
+#SECTION - Evaluate
+# ----------------------------------- TEST ----------------------------------- #
+
+    if (epoch+1)%5 == 0:
+        TP=0
+        for batch, (items,label) in enumerate(test_loader):
+            with torch.no_grad():
+                outputs = model(items)
+                outputs = outputs.view(-1,6)
+                loss = criterion(outputs,label.to(torch.float))
+                for output,answer in zip(outputs,label):
+                    if torch.argmax(output) == torch.argmax(answer):
+                        TP+=1      
+                sum_loss += loss.item()
+        
+        print(f"VALIDATION, Loss: {sum_loss/len(test_loader)}, Accuracy: {TP/len(train_loader)}")
