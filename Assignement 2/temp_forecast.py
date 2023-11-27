@@ -1,7 +1,11 @@
 import torch
-
 import torch.nn as nn
 import torch.optim as optim
+
+from sklearn.model_selection import train_test_split
+
+#TODO - Plot
+#TODO - real validation/ split data
 
 #SECTION - Constant
 # --------------------------------- CONSTANT --------------------------------- #
@@ -38,10 +42,15 @@ for line in file:
     current[2] = current[2]/31
     items.append([current])
 
-items = torch.tensor(items)
-labels = torch.tensor(labels)
-print(f"{items.shape},{labels.shape}")
+train_items, test_items, train_labels, test_labels = train_test_split(items, labels, test_size=0.2)
 
+items = torch.tensor(train_items)
+labels = torch.tensor(train_labels)
+
+test_items = torch.tensor(test_items)
+test_labels = torch.tensor(test_labels)
+
+print(test_items)
 
 #SECTION - GRU
 # ------------------------------------ GRU ----------------------------------- #
@@ -72,13 +81,29 @@ optimizer = optim.Adam(model.parameters(),lr = learning_rate)
 
 for epoch in range(EPOCHS):
     sum_loss = 0
-    TP=0
+    acc = 0
     for item,label in zip(items,labels):
         optimizer.zero_grad()
         output = model(item)
+        acc += abs(output.item()-label.item())
         loss = criterion(output,label)
         loss.backward()
         optimizer.step()
         sum_loss += loss.item()
 
-    print(f"Epoch {epoch+1}/{EPOCHS}, Loss: {sum_loss/len(items)}, Accuracy: {TP*100/len(items)}")
+    print(f"Epoch {epoch+1}/{EPOCHS}, Loss: {sum_loss/len(items)}, Accuracy: {acc/len(items)}")
+
+
+#SECTION - Evaluation
+# -------------------------------- VALIDATION -------------------------------- #
+    if (epoch+1)%5==0:
+        with torch.no_grad():
+            sum_loss = 0
+            acc = 0
+            for item,label in zip(test_items,test_labels):
+                output = model(item)
+                acc += abs(output.item()-label.item())
+                loss = criterion(output,label)
+                sum_loss += loss.item()
+
+        print(f"EVALUATION, Loss: {sum_loss/len(items)}, Accuracy: {acc/len(items)}")
