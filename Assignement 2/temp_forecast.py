@@ -1,8 +1,10 @@
 import torch
 import torch.nn as nn
+import numpy as np
 import torch.optim as optim
 
 from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
 
 #TODO - Plot
 #TODO - real validation/ split data
@@ -13,6 +15,9 @@ hidden_size = 16
 learning_rate = 0.01
 EPOCHS = 20
 
+x = np.linspace(0,EPOCHS-1,EPOCHS)
+x_validation = np.linspace(0,EPOCHS-1,int(EPOCHS/5)+1)
+x_validation = x_validation[1:]
 
 #SECTION - Data prepcrocessing
 # ---------------------------- DATA PREPROCESSING ---------------------------- #
@@ -50,8 +55,6 @@ labels = torch.tensor(train_labels)
 test_items = torch.tensor(test_items)
 test_labels = torch.tensor(test_labels)
 
-print(test_items)
-
 #SECTION - GRU
 # ------------------------------------ GRU ----------------------------------- #
 class GRU(nn.Module):
@@ -78,6 +81,10 @@ optimizer = optim.Adam(model.parameters(),lr = learning_rate)
 
 #SECTION - Training
 # --------------------------------- TRAINING --------------------------------- #
+y_acc = []
+y_loss = []
+y_val_loss = []
+y_val_acc = []
 
 for epoch in range(EPOCHS):
     sum_loss = 0
@@ -90,6 +97,8 @@ for epoch in range(EPOCHS):
         loss.backward()
         optimizer.step()
         sum_loss += loss.item()
+    y_loss.append(sum_loss/len(items))
+    y_acc.append(acc/len(items))
 
     print(f"Epoch {epoch+1}/{EPOCHS}, Loss: {sum_loss/len(items)}, Accuracy: {acc/len(items)}")
 
@@ -106,4 +115,14 @@ for epoch in range(EPOCHS):
                 loss = criterion(output,label)
                 sum_loss += loss.item()
 
+        y_val_acc.append(acc/len(items))
+        y_val_loss.append(sum_loss/len(items))
         print(f"EVALUATION, Loss: {sum_loss/len(items)}, Accuracy: {acc/len(items)}")
+
+#SECTION - Plotting
+# --------------------------------- PLOTTING --------------------------------- #
+plt.plot(x,y_loss)
+plt.plot(x,y_acc)
+plt.plot(x_validation,y_val_loss)
+plt.plot(x_validation,y_val_acc)
+plt.savefig("./temperature_forecast.png")

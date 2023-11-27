@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
-import matplotlib as plt
+import matplotlib.pyplot as plt
 
 from torch.utils.data import DataLoader,TensorDataset
 
@@ -111,6 +111,10 @@ optimizer = optim.Adam(model.parameters(),lr=learning_rate)
 
 #SECTION - Training
 # --------------------------------- TRAINING --------------------------------- #
+y_loss = []
+y_acc = []
+y_val_loss = []
+y_val_acc = []
 
 for epoch in range(EPOCHS):
     sum_loss = 0
@@ -128,6 +132,9 @@ for epoch in range(EPOCHS):
         loss.backward()
         optimizer.step()
         sum_loss += loss.item()
+    
+    y_loss.append(sum_loss/len(train_loader))
+    y_acc.append(TP*100/total)
     
     print(f"Epoch {epoch+1}/{EPOCHS}, Loss: {sum_loss/len(train_loader)}, Accuracy: {TP*100/total}")
 
@@ -147,15 +154,16 @@ for epoch in range(EPOCHS):
                     if(torch.argmax(output) == torch.argmax(answer)):
                         TP+=1  
                 sum_loss += loss.item()
-        
+
+        y_val_loss.append(sum_loss/len(test_loader))
+        y_val_acc.append(TP*100/total)
         print(f"VALIDATION, Loss: {sum_loss/len(test_loader)}, Accuracy: {TP*100/total}")
 
 
 #SECTION - Plotting
 # --------------------------------- PLOTTING --------------------------------- #
-# plt.clf()
-# plt.plot(x,y_mnist_loss)
-# plt.plot(x,y_mnist_acc)
-# plt.plot(x_validation,y_mnist_val_loss)
-# plt.plot(x_validation,y_mnist_val_acc)
-# plt.savefig("./human_activity.png")
+plt.plot(x,y_loss)
+plt.plot(x,y_acc)
+plt.plot(x_validation,y_val_loss)
+plt.plot(x_validation,y_val_acc)
+plt.savefig("./human_activity.png")
