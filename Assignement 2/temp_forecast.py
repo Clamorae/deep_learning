@@ -6,7 +6,7 @@ import torch.optim as optim
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
-#TODO - Plot
+#TODO - Add axis name on plot
 #TODO - real validation/ split data
 
 #SECTION - Constant

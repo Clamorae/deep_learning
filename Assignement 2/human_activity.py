@@ -161,6 +161,7 @@ for epoch in range(EPOCHS):
 
 
 #SECTION - Plotting
+#TODO - Add axis name on plot
 # --------------------------------- PLOTTING --------------------------------- #
 plt.plot(x,y_loss)
 plt.plot(x,y_acc)
