@@ -49,4 +49,4 @@ for i in range(EPOCHS):
     plt.gray()
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
-plt.savefig("./face.jpg")
+    plt.savefig("./face.jpg")

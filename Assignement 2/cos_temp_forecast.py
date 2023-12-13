@@ -38,18 +38,19 @@ for line in file:
     #NOTE - Not sure about this normalization may supress it later
     #NOTE - can try to normalize using sin/cos bc of cyclic repetition
     current = [int(item) for item in current]
-    input_size = len(current)
+    current.append(current[2]/31)
     current[0] = (current[0] - 1980)/10
-    current[1] = current[1]/12
-    current[2] = current[2]/31
+    current[2] = np.sin(2 * np.pi * current[1] / 12)
+    current[1] = np.cos(2 * np.pi * current[1] / 12)
+    input_size = len(current)
     items.append([current])
 
 train_items, test_items, train_labels, test_labels = train_test_split(items, labels, test_size=0.2)
 
-items = torch.tensor(train_items)
+items = torch.tensor(train_items).to(torch.float32)
 labels = torch.tensor(train_labels)
 
-test_items = torch.tensor(test_items)
+test_items = torch.tensor(test_items).to(torch.float32)
 test_labels = torch.tensor(test_labels)
 
 #SECTION - GRU
@@ -119,8 +120,8 @@ for epoch in range(EPOCHS):
 #SECTION - Plotting
 # --------------------------------- PLOTTING --------------------------------- #
 plt.plot(x,y_loss,label="Loss")
-plt.plot(x,y_acc,label = "Accuracy")
+plt.plot(x,y_acc,label = "Difference")
 plt.plot(x_validation,y_val_loss, label = "Validation loss")
-plt.plot(x_validation,y_val_acc, label = "Validation accuracy")
+plt.plot(x_validation,y_val_acc, label = "Validation difference")
 plt.legend()
-plt.savefig("./temperature_forecast.png")
+plt.savefig("./cos_temperature_forecast.png")

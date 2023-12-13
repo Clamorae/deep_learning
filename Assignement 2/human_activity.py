@@ -161,10 +161,10 @@ for epoch in range(EPOCHS):
 
 
 #SECTION - Plotting
-#TODO - Add axis name on plot
 # --------------------------------- PLOTTING --------------------------------- #
-plt.plot(x,y_loss)
-plt.plot(x,y_acc)
-plt.plot(x_validation,y_val_loss)
-plt.plot(x_validation,y_val_acc)
+plt.plot(x,y_loss,label = "Loss")
+plt.plot(x,y_acc, label = "Accuracy")
+plt.plot(x_validation,y_val_loss, label = "Validation loss")
+plt.plot(x_validation,y_val_acc, label = "Validation accuracy")
+plt.legend()
 plt.savefig("./human_activity.png")
