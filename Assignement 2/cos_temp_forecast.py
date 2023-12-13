@@ -35,8 +35,6 @@ for line in file:
     current = current[1:-1]
     current = current.split("-")
 
-    #NOTE - Not sure about this normalization may supress it later
-    #NOTE - can try to normalize using sin/cos bc of cyclic repetition
     current = [int(item) for item in current]
     current.append(current[2]/31)
     current[0] = (current[0] - 1980)/10
@@ -44,6 +42,9 @@ for line in file:
     current[1] = np.cos(2 * np.pi * current[1] / 12)
     input_size = len(current)
     items.append([current])
+
+plt.boxplot(labels)
+plt.show()
 
 train_items, test_items, train_labels, test_labels = train_test_split(items, labels, test_size=0.2,shuffle=True)
 

@@ -73,6 +73,9 @@ for line,subject in zip(test_item,test_subjects):
     line.insert(0,(subject-15)/15)
 test_labels = [[1 if i == int(num[:-1]) else 0 for i in range(6)] for num in test_labels]
 
+plt.hist(train_labels+test_labels)
+plt.show()
+
 train_dataset = TensorDataset(torch.tensor(train_item),torch.tensor(train_labels))
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 
