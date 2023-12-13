@@ -36,12 +36,16 @@ class AE(torch.nn.Module):
         self.sigmoid = nn.Sigmoid()
 
         self.Econv1 = nn.Conv2d(1, 16, 3, padding=1)
+        nn.init.xavier_uniform_(self.Econv1.weight)
         self.Epool = nn.MaxPool2d(2,2)
         self.Econv2 = nn.Conv2d(16, 64, 3, padding=1)
+        nn.init.xavier_uniform_(self.Econv2.weight)
 
         self.Dconv1 = nn.Conv2d(64, 16, 3, padding=1)
+        nn.init.xavier_uniform_(self.Dconv1.weight)
         self.Dup = nn.Upsample(scale_factor=2)
         self.Dconv2 = nn.Conv2d(16, 1, 3, padding=1)
+        nn.init.xavier_uniform_(self.Dconv2.weight)
          
         
     def forward(self, x):
@@ -71,6 +75,7 @@ optimizer = optim.Adam(autoencoder.parameters(), lr=0.01)
 
 #SECTION - Training
 # --------------------------------- TRAINING --------------------------------- #
+last_loss = 0
 for epoch in range(EPOCHS):
     sum_loss = 0
     for images in train:
@@ -82,3 +87,7 @@ for epoch in range(EPOCHS):
         sum_loss+=loss.item()
 
     print(f'Epoch [{epoch + 1}/{EPOCHS}], Loss: {sum_loss:.4f}')
+    if abs(sum_loss - last_loss)<0.005:
+        break
+    else:
+        last_loss = sum_loss
