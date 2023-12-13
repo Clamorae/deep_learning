@@ -18,7 +18,7 @@ x_validation = x_validation[1:]
 
 #SECTION - Data prepcrocessing
 # ---------------------------- DATA PREPROCESSING ---------------------------- #
-with open("./daily-minimum-temperatures-in-me.csv") as f:
+with open("./Assignement 2/daily-minimum-temperatures-in-me.csv") as f:
     file = f.readlines()
 
 file = file[1:-3]
@@ -45,7 +45,7 @@ for line in file:
     input_size = len(current)
     items.append([current])
 
-train_items, test_items, train_labels, test_labels = train_test_split(items, labels, test_size=0.2)
+train_items, test_items, train_labels, test_labels = train_test_split(items, labels, test_size=0.2,shuffle=True)
 
 items = torch.tensor(train_items).to(torch.float32)
 labels = torch.tensor(train_labels)
